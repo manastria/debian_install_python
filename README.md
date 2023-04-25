@@ -47,6 +47,8 @@ web:
 
 Each category and subcategory is a dictionary, with the subcategories and other packages keys being optional. The values are lists of package names.
 
+The special package name `linux_headers` is replaced by `linux-headers-$(uname -r)`
+
 ## Cache Update
 
 The script updates the package cache every two hours by default to ensure that the latest package information is used during installation. You can adjust this interval by changing the value of `CACHE_UPDATE_INTERVAL` (in seconds) at the beginning of the script.

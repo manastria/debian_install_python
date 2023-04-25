@@ -1,0 +1,40 @@
+debian_10:
+  base:
+    - apt
+    - curl
+    - wget
+  security:
+    - gnupg
+    - libssl-dev
+    - openssl
+  development:
+    - build-essential
+    - git
+  server:
+    - apache2
+    - php
+    - mariadb-server
+  other_packages:
+    - aptitude
+    - git
+debian_11:
+  base:
+    - aptitude
+    - curl
+    - wget
+    - git
+    - debconf-utils
+    - python3-pip
+  postfix:
+    - postfix
+    - dovecot-lmtpd
+    - bsd-mailx
+    - dovecot-imapd
+    - dovecot-pop3d
+    - bind9
+  other_packages:
+    - vim
+    - screen
+mint:
+  base:
+    - guake

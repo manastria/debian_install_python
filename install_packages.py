@@ -1,3 +1,6 @@
+#!/usr/bin/env python3
+
+
 import argparse
 import os
 import subprocess
@@ -53,43 +56,55 @@ def install_packages(packages):
         print('No new packages to install.')
 
 
-def main():
+def parse_arguments():
     """
-    Fonction principale du script. Analyse les arguments de la ligne de commande, charge le fichier YAML et installe les packages.
+    Parse les arguments de la ligne de commande et les retourne sous forme d'un objet argparse.Namespace.
     """
-    # Analyse des arguments de la ligne de commande
     parser = argparse.ArgumentParser()
     parser.add_argument('-f', '--file', help='Path to the YAML file containing the packages to install', default='packages.yaml')
     parser.add_argument('-c', '--category', help='Name of the category to install')
     parser.add_argument('-s', '--subcategories', help='Name of the subcategories to install', nargs='*', default=[])
-    args = parser.parse_args()
+    return parser.parse_args()
 
-    # Vérifie si l'utilisateur est root
+def check_root():
+    """
+    Vérifie si l'utilisateur est root. Si ce n'est pas le cas, affiche un message d'erreur et quitte le script.
+    """
     if os.geteuid() != 0:
         print('This script must be run as root!')
         sys.exit(1)
 
-    # Charge le fichier YAML
-    with open(args.file) as f:
-        data = yaml.load(f, Loader=yaml.FullLoader)
+def load_yaml_file(file_path):
+    """
+    Charge le fichier YAML et retourne son contenu.
+    """
+    with open(file_path) as f:
+        return yaml.load(f, Loader=yaml.FullLoader)
 
-    # Vérifie si la catégorie est présente dans le fichier YAML
-    if args.category not in data:
-        print(f'Category "{args.category}" not found in the YAML file!')
-        sys.exit(1)
-
-    # Récupère la liste des packages à installer
+def get_packages_to_install(data, category, subcategories):
+    """
+    Retourne la liste des packages à installer en fonction de la catégorie et des sous-catégories spécifiées.
+    """
     packages = []
-    for subcategory in args.subcategories:
-        if subcategory in data[args.category]:
-            packages += data[args.category][subcategory]
-    if 'other_packages' in data[args.category]:
-        packages += data[args.category]['other_packages']
-
+    for subcategory in subcategories:
+        if subcategory in data[category]:
+            packages += data[category][subcategory]
+    if 'other_packages' in data[category]:
+        packages += data[category]['other_packages']
+    
+    # Remplacer le mot clé 'linux_headers' par 'linux-headers-$(uname -r)'
+    if 'linux_headers' in packages:
+        packages.remove('linux_headers')
+        linux_headers_pkg = f'linux-headers-{os.uname().release}'
+        packages.append(linux_headers_pkg)
+    
     # Supprime les doublons
-    packages = list(set(packages))
+    return list(set(packages))
 
-    # Vérifie l'heure du dernier apt-get update
+def check_last_update():
+    """
+    Vérifie l'heure du dernier apt-get update et le met à jour si nécessaire.
+    """
     dotfile_path = os.path.expanduser('~/.install_packages_last_update')
     if os.path.exists(dotfile_path):
         with open(dotfile_path, 'r') as f:
@@ -105,8 +120,21 @@ def main():
         with open(dotfile_path, 'w') as f:
             f.write(str(int(current_time)))
 
-    # Installe les packages
+def main():
+    """
+    Fonction principale du script. Analyse les arguments de la ligne de commande, charge le fichier YAML, installe les packages et affiche un message de succès.
+    """
+    args = parse_arguments()
+    check_root()
+    data = load_yaml_file(args.file)
+    if args.category not in data:
+        print(f'Category "{args.category}" not found in the YAML file!')
+        sys.exit(1)
+    packages = get_packages_to_install(data, args.category, args.subcategories)
+    check_last_update()
     install_packages(packages)
-
+    print('Success!')
+    sys.exit(0)
+    
 if __name__ == '__main__':
     main()
